@@ -23,10 +23,10 @@ class YoloSequence(Sequence):
     def __getitem__(self, index):
         annotation_batch = self.annotation_lines[index * self.batch_size:(index + 1) * self.batch_size]
         # scale/augmentation 변환된 image와 개별 image별로 scale된 box 정보를 배치건수 만큼 받을 수 있는 배열 image_batch, box_batch 생성.
-        image_batch = np.zeros((annotation_batch.shape[0], self.input_shape[0], self.input_shape[1], 3), dtype='float32')
-        box_batch = np.zeros((annotation_batch.shape[0], self.max_boxes, 5))
+        image_batch = np.zeros((len(annotation_batch), self.input_shape[0], self.input_shape[1], 3), dtype='float32')
+        box_batch = np.zeros((len(annotation_batch), self.max_boxes, 5))
         # 배치건수만큼 반복하면서 scale/augmented 된 image와 box정보를 image_batch, box_batch에 담음.
-        for batch_index in range(annotation_batch.shape[0]):
+        for batch_index in range(len(annotation_batch)):
             annotation_line = annotation_batch[batch_index]
             image_data, box_data = self.get_image_box(annotation_line, input_shape=self.input_shape,
                                                       max_boxes=self.max_boxes, augmentor=self.augmentor)
