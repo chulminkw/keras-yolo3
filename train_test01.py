@@ -11,6 +11,9 @@ from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnP
 
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
 from yolo3.utils import get_random_data
+from generator2 import YoloSequence
+import albumentations as A
+
 
 
 def _main():
@@ -45,20 +48,26 @@ def _main():
 
     batch_size = 32
     print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
+
+    augmentor = A.Compose([
+        A.HorizontalFlip(p=1.0)
+    ], bbox_params=A.BboxParams(format='pascal_voc'))
     #gen_result = data_generator_wrapper(lines[:num_train], batch_size, input_shape, anchors, num_classes)
-    #result1, result2 = next(gen_result)
+    # result1, result2 = next(gen_result)
+    train_set = YoloSequence(lines[:num_train], input_shape, batch_size, num_classes, anchors, max_boxes=20, augmentor=augmentor)
+    valid_set = YoloSequence(lines[num_train:], input_shape, batch_size, num_classes, anchors, max_boxes=20, augmentor=None)
+
     model.compile(optimizer=Adam(lr=1e-3), loss={
         # use custom yolo_loss Lambda layer.
         'yolo_loss': lambda y_true, y_pred: y_pred})
 
-    model.fit_generator(data_generator_wrapper(lines[:num_train], batch_size, input_shape, anchors, num_classes),
+    model.fit_generator(train_set,
                         steps_per_epoch=max(1, num_train // batch_size),
-                        validation_data=data_generator_wrapper(lines[num_train:], batch_size, input_shape, anchors,
-                                                               num_classes),
+                        validation_data=valid_set,
                         validation_steps=max(1, num_val // batch_size),
-                        epochs=100,
-                        initial_epoch=50,
-                        callbacks=[logging, checkpoint, reduce_lr, early_stopping])
+                        epochs=50,
+                        initial_epoch=0,
+                        callbacks=[checkpoint, reduce_lr, early_stopping])
 
 
 
